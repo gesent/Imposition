@@ -1,0 +1,83 @@
+html, body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+.mainbody {
+  height: 100%;
+  width: 100%;
+}
+
+.imposition {
+  height: 98vh; /* 80% of the viewport height */
+  width: 80%;
+  text-align: center;
+  position: fixed;
+  margin-left: 10px;
+  margin-top: 10px;
+  bottom: 1vh; /* Stick to the bottom of the viewport */
+}
+
+.control {
+  height: 100%;
+  width: 20%;
+  padding-left: 80%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.container {
+  display: flex;
+  height: 100%;
+}
+
+#settings {
+  text-align: center;
+  margin-right: 10px;
+  width: 100%; /* Ensure settings take the full width */
+}
+
+.mainPageSize {
+  width: 100%; /* Ensure select elements take the full width */
+}
+
+#samples {
+  width: 80%;
+  height: 100%;
+}
+
+#imCanvas {
+  border: 2px solid grey;
+}
+
+#calc {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  z-index: 1000; /* Ensures the button is above other elements */
+}
+
+.Item {
+  width: 75%; /* Ensure the item div takes the full width */
+  border: 2px solid grey;
+}
+
+.Item label, .Item select, .Item input {
+  width: 150px; /* Ensure child elements take the full width */
+  box-sizing: border-box; /* Include padding and border in the element's total width and height */
+  padding-right: 10px;
+}
+
+.itemSize {
+  height: 80%; /* Set a fixed height */
+  overflow-y: auto;
+  margin-left: 25px;
+  margin-right: -40px;
+
+  /* padding: 10px; Optional: Add padding for better spacing */
+}
+
+.highlight {border: 2px solid red;}
