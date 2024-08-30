@@ -4,7 +4,7 @@ var elementTrack = 0;
 let CompileData = {};
 let allItems = [];
 let usedColors = new Set(); 
-let GlobalX = 0, GlobalY = 0;
+let GlobalX = 0, GlobalY = 0, GlobalCurrentX = 0, GlobalCurrentY = 0, GlobalItemHight = 0, GlobalItemWith = 0 ;
 let MainSheet = {
     MainHeight: 0,
     MainWidth: 0,
@@ -304,7 +304,7 @@ function CalcPerPage(CompileData)
                 item.PerSheetQuantity = perSheetQuantity;
             }
             var iid =1;
-        //    console.log(CompileData);
+            //    console.log(CompileData);
 
             for (const key in CompileData) {
                 const item = CompileData[key];
@@ -326,23 +326,14 @@ function CalcPerPage(CompileData)
             }
 
             allItems.sort((a, b) => b.Square - a.Square);
-            // console.log(allItems);
 
             // Update the global object with the total number of sheets
              MainSheet.TotalSheets = Math.ceil(totalSheets);
              const AllItemsCombined = combineItems(allItems);
-            //  console.log(AllItemsCombined[0]);
-            for (const key in AllItemsCombined) 
-                {
-                    DirectionRotationChoice(AllItemsCombined[key]);
-                }
-            //  ImposeVisual(CompileData, MainSheet.MainWidthScaled, MainSheet.MainHeightScaled);
-            // calculateOptimalSheetLayout(MainSheet.MainHeightScaled, MainSheet.MainWidthScaled, CompileData);
-            // console.log(allItems);
-            ImposeVisual(allItems, MainSheet.MainWidthScaled, MainSheet.MainHeightScaled);
-            // console.log(`CompileData:`, CompileData);
-            // console.log(`MainSheet.TotalSheets: ${MainSheet.TotalSheets}`);
+  
             console.log(allItems);
+            //ImposeVisual(allItems, MainSheet.MainWidthScaled, MainSheet.MainHeightScaled, AllItemsCombined);
+            ImposeVisual(allItems,  MainSheet.MainWidthScaled, MainSheet.MainHeightScaled,);
         }
 }
 
@@ -360,8 +351,7 @@ function calculateFit(availableSpace, itemSize, itemCount) {
 function DirectionRotationChoice(combinedItems) {
     let largestEvenValue = -1;
     let largestEvenKey = null;
-    let currentX = GlobalX;
-    let currentY = GlobalY;
+    
     let ItemTest = {
         XNoR: 0, 
         XR: 0, 
@@ -399,65 +389,7 @@ function DirectionRotationChoice(combinedItems) {
             largestEvenKey = key;
         }
     }
-
-    // Swap Height and Width if the largestEvenKey is XR or YR
-    if (largestEvenKey === "XR" || largestEvenKey === "YR") {
-        for (const item of allItems) {
-            if (item.Size === combinedItems.Size) {
-                // Swap Height and Width
-                let temp = item.Height;
-                item.Height = item.Width;
-                item.Width = temp;
-                temp = GlobalX;
-                GlobalX = GlobalY;
-                GlobalX = temp;
-            }
-        }
-    }
-console.log(largestEvenKey);
-    // Update StartX and StartY if the largestEvenKey is XNoR or XR
-    if (largestEvenKey === "XNoR" || largestEvenKey === "XR") {
-        for (const item of allItems) {
-            if (item.Size === combinedItems.Size) {
-                // Check if the item fits in the current row
-                if (currentX + item.Width > MainSheet.MainWidthScaled) {
-                    // Start a new row
-                    currentX = 0;
-                    currentY += item.Height;
-                }
-
-                // Update StartX and StartY
-                item.StartX = currentX;
-                item.StartY = currentY;
-
-                // Move to the next position in the row
-                currentX += item.Width;
-            }
-        }
-    }
-
-    if (largestEvenKey === "YNoR" || largestEvenKey === "YR") {
-        for (const item of allItems) {
-            if (item.Size === combinedItems.Size) {
-                // Check if the item fits in the current row
-                if (currentY + item.Height > MainSheet.MainHeightScaled) {
-                    // Start a new row
-                    currentY = 0;
-                    currentX += item.Width;
-                }
-
-                // Update StartX and StartY
-                item.StartX = currentX;
-                item.StartY = currentY;
-
-                // Move to the next position in the row
-                currentY += item.Height;
-            }
-        }
-    }
-    console.log("GlobalX "+ GlobalX + " GlobalY "+ GlobalY)
-    GlobalX = currentX;
-    GlobalY = currentY;
+return largestEvenKey;
 }
 
 function combineItems(allItems) {
@@ -489,40 +421,90 @@ function combineItems(allItems) {
     return newAllItems;
 }
 
-function ImposeVisual(allItems, sheetWidth, sheetHeight) {
+/*function ImposeVisual(allItems, sheetWidth, sheetHeight, AllItemsCombined) {
     const c = document.getElementById("imCanvas");
     const ctx = c.getContext("2d");
-    
-    
+
     // Clear the canvas before drawing
     ctx.clearRect(0, 0, c.width, c.height);
 
     const remainingItems = [];
+    
+    let currentX = 0, currentY = 0;
+    let currentDirection = null;
+    let rowHeight = 0;
 
-    allItems.forEach(item => {
+    // Determine the initial direction and rotation based on the first item in AllItemsCombined
+    for (const key in AllItemsCombined) {
+        currentDirection = DirectionRotationChoice(AllItemsCombined[key]);
+        break;
+    }
+
+    allItems.forEach((item, index) => {
         let itemFits = true;
-        // Use the item's StartX and StartY coordinates for placement
-        const offsetX = item.StartX;
-        const offsetY = item.StartY;
 
+        // Determine where to place the item based on currentDirection
+        if (currentDirection === "XNoR") 
+            {
+                item.StartX = currentX;
+                item.StartY = currentY;
+                rowHeight = Math.max(rowHeight, item.Height);
+                currentX += item.Width;
+            } 
+        else if (currentDirection === "XR") 
+            {
+                item.StartX = currentX;
+                item.StartY = currentY;
+                [item.Width, item.Height] = [item.Height, item.Width];
+                rowHeight = Math.max(rowHeight, item.Height);
+                currentX += item.Width;
+            } 
+        else if (currentDirection === "YNoR") 
+            {
+                item.StartX = currentX;
+                item.StartY = currentY;
+                currentY += item.Height;
+            } 
+        else if (currentDirection === "YR") 
+            {
+                item.StartX = currentX;
+                item.StartY = currentY;
+                [item.Width, item.Height] = [item.Height, item.Width];
+                currentY += item.Height;
+            }
 
         // Check if the item fits on the canvas
-        if (offsetX + item.Width > sheetWidth || offsetY + item.Height > sheetHeight) {
-            // Attempt to rotate the item to landscape
-            if (offsetX + item.Height <= sheetWidth && offsetY + item.Width <= sheetHeight) {
-                // Swap height and width for landscape orientation
-                [item.Width, item.Height] = [item.Height, item.Width];
+        if (item.StartX + item.Width > sheetWidth || item.StartY + item.Height > sheetHeight) {
+            // Move to a new row/column based on the direction
+            if (currentDirection === "XNoR" || currentDirection === "XR") {
+                currentX = 0;
+                currentY += rowHeight;
+                rowHeight = 0;
             } else {
-                // Item does not fit in either orientation
-                console.log(`Item ${item.id} does not fit on the sheet anymore.`);
+                currentY = 0;
+                currentX += item.Width;
+            }
+
+            // Reset the item position after moving to a new row/column
+            item.StartX = currentX;
+            item.StartY = currentY;
+
+            // Check if the item fits now
+            if (item.StartX + item.Width > sheetWidth || item.StartY + item.Height > sheetHeight) {
                 itemFits = false;
+            } else {
+                if (currentDirection === "XNoR" || currentDirection === "XR") {
+                    currentX += item.Width;
+                } else {
+                    currentY += item.Height;
+                }
             }
         }
 
-        // Check if the item fits on the canvas
+        // Draw the item if it fits
         if (itemFits) {
             ctx.beginPath();
-            ctx.rect(offsetX, offsetY, item.Width, item.Height);
+            ctx.rect(item.StartX, item.StartY, item.Width, item.Height);
 
             // Set the fill color based on the item's color property
             ctx.fillStyle = item.Color;
@@ -536,71 +518,209 @@ function ImposeVisual(allItems, sheetWidth, sheetHeight) {
 
             // Calculate the position to center the text in the rectangle
             const textWidth = ctx.measureText(item.Size).width;
-            const textX = offsetX + (item.Width - textWidth) / 2;
-            const textY = offsetY + (item.Height + fontSize) / 2;
+            const textX = item.StartX + (item.Width - textWidth) / 2;
+            const textY = item.StartY + (item.Height + fontSize) / 2;
 
             // Set the text color and draw the label centered in the rectangle
             ctx.fillStyle = "black";
             ctx.fillText(item.Size, textX, textY);
-            
-        } 
-        
-        else {
-             // If the item does not fit, add it to the remainingItems array
+
+        } else {
+            // If the item does not fit, add it to the remainingItems array
             remainingItems.push(item);
         }
     });
 
     allItems.length = 0; // Clear the original array
     allItems.push(...remainingItems); // Add the remaining items back to the array
-    console.log(`ITEMS LEFT ${allItems}`);
 }
 
 
 
+function findWhiteSpaceBlocks(canvasId) {
+    const c = document.getElementById(canvasId);
+    const ctx = c.getContext("2d");
+    const width = c.width;
+    const height = c.height;
 
-// function ImposeVisual(compileData, sheetWidth, sheetHeight) {
-//     const c = document.getElementById("imCanvas");
-//     const ctx = c.getContext("2d");
+    const whiteSpaceBlocks = [];
+    const imgData = ctx.getImageData(0, 0, width, height).data;
 
-//     // Clear the canvas before drawing
-//     ctx.clearRect(0, 0, c.width, c.height);
+    // Create a 2D array to track visited pixels
+    const visited = Array.from({ length: height }, () => Array(width).fill(false));
 
-//       // Loop through each item in compileData and draw it on the canvas
-//       let offsetX = 0, offsetY = 0;
+    // Helper function to check if a pixel is white
+    const isWhite = (x, y) => {
+        const index = (y * width + x) * 4;
+        return imgData[index] === 255 && imgData[index + 1] === 255 && imgData[index + 2] === 255 && imgData[index + 3] === 255;
+    };
 
-//       for (const key in compileData) {
-//           const item = compileData[key];
-          
-//           for (let i = 0; i < item.PerSheetQuantity; i++) {
-//               // Draw each item in its calculated position
-//               if (offsetX + item.Width > sheetWidth) {
-//                   offsetX = 0;
-//                   offsetY += item.Height; // Move to next row
-//               }
-  
-//               if (offsetY + item.Height > sheetHeight) {
-//                   console.log(`Item ${key} does not fit on the sheet anymore.`);
-//                   break; // Stop if no more items can fit
-//               }
-  
-//               ctx.beginPath();
-//               ctx.rect(offsetX, offsetY, item.Width, item.Height);
-  
-//               // Set the fill color based on the item's color property
-//               ctx.fillStyle = item.Color;
-//               ctx.fill();
-  
-//               ctx.stroke(); // Draw the border of the rectangle
-  
-//               // Optional: Add label to the drawn rectangle
-//               ctx.fillStyle = "black";
-//               ctx.fillText(item.Size, offsetX + 5, offsetY + 15); // Display the size label
-  
-//               offsetX += item.Width; // Move to the next position horizontally
-//           }
-  
-//           offsetX = 0; // Reset horizontal offset for next item
-//           offsetY += item.Height; // Move to next row for next item
-//       }
-// }
+    // Helper function to find the largest rectangle of white space starting at (startX, startY)
+    function findWhiteSpaceRectangle(startX, startY) {
+        let maxX = startX;
+        let maxY = startY;
+
+        // Expand horizontally
+        while (maxX < width && isWhite(maxX, startY) && !visited[startY][maxX]) {
+            maxX++;
+        }
+
+        // Expand vertically
+        while (maxY < height && isWhite(startX, maxY) && !visited[maxY][startX]) {
+            maxY++;
+        }
+
+        // Mark the area as visited
+        for (let y = startY; y < maxY; y++) {
+            for (let x = startX; x < maxX; x++) {
+                visited[y][x] = true;
+            }
+        }
+
+        return {
+            x: startX,
+            y: startY,
+            width: maxX - startX,
+            height: maxY - startY
+        };
+    }
+
+    // Iterate through the canvas to find white space rectangles
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            if (isWhite(x, y) && !visited[y][x]) {
+                const whiteSpaceRect = findWhiteSpaceRectangle(x, y);
+                whiteSpaceBlocks.push(whiteSpaceRect);
+            }
+        }
+    }
+
+    return whiteSpaceBlocks;
+}*/
+function ImposeVisual(allItems, sheetWidth, sheetHeight) {
+    const c = document.getElementById("imCanvas");
+    const ctx = c.getContext("2d");
+
+    // Clear the canvas before drawing
+    ctx.clearRect(0, 0, c.width, c.height);
+
+    // List of free rectangles (initially the whole sheet)
+    let freeRectangles = [{ x: 0, y: 0, width: sheetWidth, height: sheetHeight }];
+
+    for (let i = 0; i < allItems.length; i++) {
+        let item = allItems[i];
+        let placed = false;
+
+        // Sort free rectangles by area (largest first)
+        freeRectangles.sort((a, b) => (b.width * b.height) - (a.width * a.height));
+
+        for (let j = 0; j < freeRectangles.length; j++) {
+            let rect = freeRectangles[j];
+
+            // Check if the item fits in the current rectangle (both orientations)
+            if (item.Width <= rect.width && item.Height <= rect.height) {
+                // Place the item
+                placeItem(ctx, item, rect.x, rect.y);
+                // Split the free space
+                freeRectangles = splitFreeRectangles(freeRectangles, rect, item.Width, item.Height, rect.x, rect.y);
+                placed = true;
+                break;
+            } else if (item.Height <= rect.width && item.Width <= rect.height) {
+                // Place the item with rotation
+                placeItem(ctx, item, rect.x, rect.y, true);
+                // Split the free space
+                freeRectangles = splitFreeRectangles(freeRectangles, rect, item.Height, item.Width, rect.x, rect.y);
+                placed = true;
+                break;
+            }
+        }
+
+        if (!placed) {
+            console.log(`Item ${item.Size} couldn't be placed.`);
+        }
+    }
+}
+
+function placeItem(ctx, item, x, y, rotated = false) {
+    let width = rotated ? item.Height : item.Width;
+    let height = rotated ? item.Width : item.Height;
+
+    // Draw the item on the canvas
+    ctx.beginPath();
+    ctx.rect(x, y, width, height);
+    ctx.fillStyle = item.Color;
+    ctx.fill();
+    ctx.stroke();
+
+    // Draw the text label
+    let fontSize = Math.min(width, height) * 0.15;
+    ctx.font = `${fontSize}px Arial`;
+    ctx.fillStyle = "black";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(item.Size, x + width / 2, y + height / 2);
+
+    // Update item position
+    item.StartX = x;
+    item.StartY = y;
+}
+
+function splitFreeRectangles(freeRectangles, rect, width, height, x, y) {
+    let newFreeRectangles = [];
+
+    for (let i = 0; i < freeRectangles.length; i++) {
+        let freeRect = freeRectangles[i];
+
+        // Check if the free rectangle overlaps with the placed item
+        if (!(x >= freeRect.x + freeRect.width || x + width <= freeRect.x || 
+              y >= freeRect.y + freeRect.height || y + height <= freeRect.y)) {
+            
+            // Prioritize splitting into larger rectangles first
+
+            // Top rectangle
+            if (y > freeRect.y) {
+                newFreeRectangles.push({
+                    x: freeRect.x,
+                    y: freeRect.y,
+                    width: freeRect.width,
+                    height: y - freeRect.y
+                });
+            }
+
+            // Bottom rectangle
+            if (y + height < freeRect.y + freeRect.height) {
+                newFreeRectangles.push({
+                    x: freeRect.x,
+                    y: y + height,
+                    width: freeRect.width,
+                    height: freeRect.y + freeRect.height - (y + height)
+                });
+            }
+
+            // Left rectangle
+            if (x > freeRect.x) {
+                newFreeRectangles.push({
+                    x: freeRect.x,
+                    y: y,
+                    width: x - freeRect.x,
+                    height: freeRect.height
+                });
+            }
+
+            // Right rectangle
+            if (x + width < freeRect.x + freeRect.width) {
+                newFreeRectangles.push({
+                    x: x + width,
+                    y: y,
+                    width: freeRect.x + freeRect.width - (x + width),
+                    height: freeRect.height
+                });
+            }
+        } else {
+            // Keep the free rectangle as it is if no overlap
+            newFreeRectangles.push(freeRect);
+        }
+    }
+
+    return newFreeRectangles;
+}
